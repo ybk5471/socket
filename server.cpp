@@ -3,14 +3,14 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
-#include<netinet/in.h>
+#include <netinet/in.h>
 #include <string.h>
 #include <system_error>
 #include <errno.h>
 #include <iostream>
 
 #define SERVPORT 7809
-#define MAXSIZE 70000
+#define MAXSIZE 1000000
 #define SYSTERR(info) std::system_error(errno, std::system_category(), info)
 
 int main() {
@@ -58,13 +58,15 @@ int main() {
 		if (-1 == imgfd) {
 			throw SYSTERR("server open image");
 		}
-		if (-1 == read(imgfd, (void *)buf, MAXSIZE)) {
+		int filesize = read(imgfd, (void *)buf, MAXSIZE);
+		if (-1 == size) {
 			throw SYSTERR("server send image");
 		}
+		std::cout << "image size:" << filesize << std::endl;
 
 		//send
 		if (!fork()) {
-			if (-1 == send(connectfd, (void *)buf, sizeof(buf), 0)) {
+			if (-1 == send(connectfd, (void *)buf, filesize + 1, 0)) {
 				throw SYSTERR("server send");
 			}
 		}
