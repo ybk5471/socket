@@ -1,5 +1,7 @@
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <unistd.h>
 #include<netinet/in.h>
 #include<arpa/inet.h>
@@ -7,14 +9,15 @@
 #include <system_error>
 #include <errno.h>
 #include <iostream>
+#include <sstream>
 #include <string>
 
 #define SYSTERR(info) std::system_error(errno, std::system_category(), info)
-#define MAXSIZE 4096
+#define MAXSIZE 70000
 
 int main(int argc, char ** argv) {
 	int clientfd;
-	char buf[4096];
+	char buf[MAXSIZE];
 	std::string filename;
 
 	if (argc < 2) {
@@ -38,7 +41,7 @@ int main(int argc, char ** argv) {
 
 	std::cout << "connect server(addr: " << argv[1] << ":" << clientaddr.sin_port << ")\n";
 	std::cout << "enter the message: ";
-	std::cin.getline(filename, 100);
+	getline(std::cin, filename);
 
 	if (-1 == send(clientfd, (const void *)filename.c_str(), filename.size(), 0)) {
 		throw SYSTERR("client send");
@@ -48,8 +51,18 @@ int main(int argc, char ** argv) {
 	if (-1 == n) {
 		throw SYSTERR("client receive");
 	}
-	buf[n] = '\0';
-	std::cout << buf << std::endl;
+
+	filename = "receive.jpg";
+	int imgfd = open(filename.c_str(), O_WRONLY | O_CREAT | O_SYNC, 0777);
+	if (-1 == imgfd) {
+		throw SYSTERR("client open receive file");
+	}
+
+	if (-1 == write(imgfd, buf, sizeof(buf))) {
+		throw SYSTERR("client save receive file");
+	}
+
+	close(imgfd);
 	close(clientfd);
 
 	return 0;
